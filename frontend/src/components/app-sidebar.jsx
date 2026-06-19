@@ -1,4 +1,4 @@
-import { Home, Network, Settings, BarChart2, FileCode2 } from "lucide-react"
+import { Bot, FileUp, Network, Settings, SlidersHorizontal, Workflow } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -12,24 +12,23 @@ import {
 } from "@/components/ui/sidebar"
 
 const items = [
-  { title: "Dashboard", url: "#", icon: Home },
-  { title: "DAG Viewer", url: "#", icon: Network, active: true },
-  { title: "Analytics", url: "#", icon: BarChart2 },
-  { title: "Specs", url: "#", icon: FileCode2 },
-  { title: "Settings", url: "#", icon: Settings },
+  { id: "ingest", title: "Ingestion", icon: FileUp },
+  { id: "tools", title: "Toolsets", icon: SlidersHorizontal },
+  { id: "playground", title: "Playground", icon: Bot },
+  { id: "dag", title: "DAG Viewer", icon: Network },
 ]
 
-export function AppSidebar() {
+export function AppSidebar({ activePage, onPageChange }) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-3 pt-4 pb-3">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-violet-600 shrink-0">
-            <Network className="size-4 text-white" />
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500">
+            <Workflow className="size-4 text-neutral-950" />
           </div>
           <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold text-sidebar-foreground whitespace-nowrap">DAG Proxy</span>
-            <span className="text-xs text-sidebar-foreground/50">Visualizer</span>
+            <span className="text-sm font-semibold text-sidebar-foreground whitespace-nowrap">Gram Workspace</span>
+            <span className="text-xs text-sidebar-foreground/50">MCP Builder</span>
           </div>
         </div>
       </SidebarHeader>
@@ -41,14 +40,28 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={item.active}>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton
+                    isActive={activePage === item.id}
+                    tooltip={item.title}
+                    onClick={() => onPageChange(item.id)}
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton tooltip="Settings">
+                  <Settings />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -23,7 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
 )
 
-BASE_SPEC_DIR = r"C:\All Files\Dell\test_specs\V3"
+BASE_SPEC_DIR = r"D:\Projects\Dell\test_specs\V3"
 
 def parse_spec_to_graph(spec_path: str) -> dict:
     graph = nx.DiGraph()
