@@ -31,14 +31,16 @@ Beyond static clustering, the proxy **builds workflows itself**: it synthesizes 
 ## Architecture at a glance
 
 ```
-        ┌─────────────────────────────────────────────────┐
-        │  React UI (Vite)                                  │
-        │  Ingest · Toolsets · Workflow Proxy · DAG ·       │
-        │  Playground (⚡ auto-route) · Environments · MCP · │
-        │  SDK · Prompts · Custom Tools                     │
-        └───────────────┬─────────────────────────────────┘
-                        │ HTTP (8000)
-        ┌───────────────▼─────────────────────────────────┐
+        ┌────────────────────────────────────────────────────┐
+        │  React UI (Vite)                                   │
+        │  Ingest · Toolsets · Workflow Proxy · DAG ·        │
+        │  Playground (auto-route) · Environments · MCP      │
+        │  SDK · Prompts · Custom Tools                      │
+        └───────────────┬────────────────────────────────────┘
+                        │
+                        |HTTP (8000)
+                        |
+        ┌───────────────▼───────────────────────────────────┐
         │  FastAPI  (compiler/main.py)                      │
         │  ingest · proxy · workflows · agent · resources   │
         │  (clustering · synthesis · AI discover · router)  │
@@ -46,13 +48,15 @@ Beyond static clustering, the proxy **builds workflows itself**: it synthesizes 
         │             ▼                                     │
         │   local_storage.json  (sources, workflow_defs,    │
         │     toolsets, plans, environments, creds)         │
-        └───────────────┬─────────────────────────────────┘
+        └───────────────┬───────────────────────────────────┘
                         │
-        ┌───────────────▼─────────────────────────────────┐
+        ┌───────────────▼───────────────────────────────────┐
         │  FastMCP server  (app/mcp_server.py)  :8002/sse   │
         │  workflow tools + search_operations/describe      │
-        └───────────────┬─────────────────────────────────┘
-                        │ /workflows/execute → /proxy/call (active env override)
+        └───────────────┬───────────────────────────────────┘
+                        │ 
+                        |/workflows/execute → /proxy/call (active env override)
+                        |
                         ▼
                  Downstream API (iDRAC / OME / any OpenAPI)
 ```
