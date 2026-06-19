@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Bell, Command, Search } from "lucide-react"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -28,18 +28,150 @@ const pageMeta = {
   },
 }
 
+function normalizeTools(rawTools = []) {
+  return rawTools.map((tool, index) => {
+    let params = []
+    if (Array.isArray(tool.parameters)) {
+      params = tool.parameters.map(p => typeof p === 'object' && p ? (p.name || p.id) : p).filter(Boolean)
+    } else if (Array.isArray(tool.args)) {
+      params = tool.args
+    }
+    return {
+      id: tool.operation_id ?? tool.id ?? tool.name ?? `${tool.method ?? "TOOL"}_${tool.path ?? index}`,
+      method: tool.method ?? "POST",
+      path: tool.path ?? tool.name ?? `tool_${index + 1}`,
+      description: tool.description ?? tool.summary ?? "Generated MCP tool route.",
+      parameters: params,
+      selected: tool.selected !== undefined ? tool.selected : true,
+    }
+  })
+}
+
 export default function App() {
   const [activePage, setActivePage] = useState("ingest")
   const [tools, setTools] = useState([])
+  const [sources, setSources] = useState({})
+  const [selectedSource, setSelectedSource] = useState("")
+
+  const fetchSources = async () => {
+    try {
+      const response = await fetch("/api/v1/sources")
+      if (response.ok) {
+        const data = await response.json()
+        setSources(data)
+        return data
+      }
+    } catch (err) {
+      console.error("Failed to fetch sources", err)
+    }
+    return null
+  }
+
+  const loadSourceTools = async (sourceId) => {
+    if (!sourceId) return
+    try {
+      const response = await fetch(`/api/v1/sources/${sourceId}/tools`)
+      if (response.ok) {
+        const data = await response.json()
+        const normalized = normalizeTools(data.tools ?? [])
+        setTools(normalized)
+      }
+    } catch (err) {
+      console.error("Failed to load source tools", err)
+    }
+  }
+
+  const handleDeleteSource = async (sourceId) => {
+    try {
+      const res = await fetch(`/api/v1/sources/${sourceId}`, { method: "DELETE" })
+      if (res.ok) {
+        const updated = await fetchSources()
+        if (updated && Object.keys(updated).length > 0) {
+          const first = Object.keys(updated)[0]
+          setSelectedSource(first)
+          await loadSourceTools(first)
+        } else {
+          setSelectedSource("")
+          setTools([])
+        }
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleSaveToolset = async (selectedTools) => {
+    if (!selectedSource) return
+    try {
+      const response = await fetch("/api/v1/toolsets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          toolset_id: selectedSource,
+          tools: selectedTools
+        })
+      })
+      if (response.ok) {
+        alert(`Toolset for '${selectedSource}' saved successfully!`)
+      } else {
+        alert("Failed to save toolset to backend.")
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Error saving toolset.")
+    }
+  }
+
+  useEffect(() => {
+    fetchSources().then((data) => {
+      if (data) {
+        const keys = Object.keys(data)
+        if (keys.length > 0) {
+          const firstSource = keys[0]
+          setSelectedSource(firstSource)
+          loadSourceTools(firstSource)
+        }
+      }
+    })
+  }, [])
 
   const currentPage = pageMeta[activePage]
   const pageContent = useMemo(() => {
     if (activePage === "ingest") {
-      return <IngestionWizard onIngestionComplete={setTools} />
+      return (
+        <IngestionWizard
+          sources={sources}
+          onIngestionComplete={async (nextTools) => {
+            const updated = await fetchSources()
+            if (updated && Object.keys(updated).length > 0) {
+              // Select the newly ingested source if it's new
+              const keys = Object.keys(updated)
+              const latest = keys[keys.length - 1]
+              setSelectedSource(latest)
+              await loadSourceTools(latest)
+            } else {
+              setTools(nextTools)
+            }
+          }}
+          onDeleteSource={handleDeleteSource}
+        />
+      )
     }
 
     if (activePage === "tools") {
-      return <ToolsetManager tools={tools} onToolsChange={setTools} />
+      return (
+        <ToolsetManager
+          tools={tools}
+          onToolsChange={setTools}
+          sources={sources}
+          selectedSource={selectedSource}
+          onSourceChange={async (sourceId) => {
+            setSelectedSource(sourceId)
+            await loadSourceTools(sourceId)
+          }}
+          onSaveToolset={handleSaveToolset}
+        />
+      )
     }
 
     if (activePage === "playground") {
@@ -47,7 +179,8 @@ export default function App() {
     }
 
     return <DagViewer />
-  }, [activePage, tools])
+  }, [activePage, tools, sources, selectedSource])
+
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] text-[#111827] antialiased">

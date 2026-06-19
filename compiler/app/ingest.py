@@ -2,6 +2,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 import yaml
 import json
+from typing import List
+from pydantic import BaseModel
 from app.storage import load_storage, save_storage
 
 router = APIRouter(prefix="/api/v1")
@@ -107,3 +109,52 @@ async def delete_source(source_id: str):
     storage["credentials"].pop(source_id, None)
     save_storage(storage)
     return {"status": "deleted", "source_id": source_id}
+
+
+class ToolsetItem(BaseModel):
+    id: str
+    method: str
+    path: str
+    description: str
+    parameters: List[str] = []
+    selected: bool = True
+
+
+class ToolsetSaveRequest(BaseModel):
+    toolset_id: str
+    tools: List[ToolsetItem]
+
+
+@router.post("/toolsets")
+async def save_toolset(req: ToolsetSaveRequest):
+    """Saves a custom curated toolset to local storage."""
+    storage = load_storage()
+    
+    # Initialize toolsets sub-dict if not present
+    if "toolsets" not in storage:
+        storage["toolsets"] = {}
+        
+    storage["toolsets"][req.toolset_id] = {
+        "toolset_id": req.toolset_id,
+        "tools": [tool.model_dump() for tool in req.tools]
+    }
+    save_storage(storage)
+    return {"status": "success", "message": f"Toolset '{req.toolset_id}' saved successfully"}
+
+
+@router.get("/toolsets")
+async def list_toolsets():
+    """Lists all saved toolsets."""
+    storage = load_storage()
+    return storage.get("toolsets", {})
+
+
+@router.get("/toolsets/{toolset_id}")
+async def get_toolset(toolset_id: str):
+    """Retrieves a specific toolset."""
+    storage = load_storage()
+    toolset = storage.get("toolsets", {}).get(toolset_id)
+    if not toolset:
+        raise HTTPException(status_code=404, detail=f"Toolset '{toolset_id}' not found.")
+    return toolset
+

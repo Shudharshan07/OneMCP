@@ -117,3 +117,49 @@ async def save_workflow(args: SaveWorkflowArgs) -> str:
     from app.storage import save_storage
     save_storage(storage)
     return f"✅ Workflow '{args.workflow_id}' saved with {len(args.steps)} steps."
+
+
+# ---------------------------------------------------------------------------
+# Dynamically register all ingested OpenAPI tools
+# ---------------------------------------------------------------------------
+import re
+
+def make_dynamic_tool(sid: str, oid: str):
+    async def dynamic_tool(
+        path_params: dict = {},
+        query_params: dict = {},
+        body: dict = {}
+    ) -> str:
+        """Dynamically executes this specific OpenAPI tool."""
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                response = await client.post(
+                    "http://127.0.0.1:8000/api/v1/proxy/call",
+                    json={
+                        "source_id": sid,
+                        "operation_id": oid,
+                        "path_params": path_params,
+                        "query_params": query_params,
+                        "body": body
+                    },
+                )
+                return json.dumps(response.json(), indent=2)
+            except Exception as e:
+                return f"❌ Tool execution failed: {str(e)}"
+    return dynamic_tool
+
+try:
+    storage = load_storage()
+    for source_id, source_data in storage.get("sources", {}).items():
+        for op_id, tool_data in source_data.get("tools", {}).items():
+            # FastMCP tool names must match ^[a-zA-Z0-9_-]+$
+            clean_name = re.sub(r'[^a-zA-Z0-9_-]', '_', op_id)
+            description = tool_data.get("description", f"Execute {op_id} on {source_id}")
+            
+            # Register the dynamic tool on the FastMCP instance
+            mcp.tool(name=clean_name, description=description)(
+                make_dynamic_tool(source_id, op_id)
+            )
+except Exception as e:
+    print(f"⚠️ Failed to dynamically register tools: {e}")
+

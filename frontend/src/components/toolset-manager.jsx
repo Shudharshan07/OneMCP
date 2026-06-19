@@ -30,7 +30,14 @@ const sampleTools = [
   },
 ]
 
-export function ToolsetManager({ tools, onToolsChange }) {
+export function ToolsetManager({
+  tools,
+  onToolsChange,
+  sources = {},
+  selectedSource = "",
+  onSourceChange,
+  onSaveToolset,
+}) {
   const visibleTools = tools.length ? tools : sampleTools
   const [query, setQuery] = useState("")
 
@@ -51,13 +58,31 @@ export function ToolsetManager({ tools, onToolsChange }) {
   return (
     <section className="grid h-full min-h-0 grid-rows-[auto_1fr] overflow-hidden">
       <div className="border-b border-[#E5E7EB] bg-white px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <h2 className="text-sm font-semibold text-[#111827]">Dynamic Toolset Manager</h2>
             <p className="mt-1 text-sm text-[#6B7280]">Keep curated groups focused: 5-30 tools is the recommended operating window.</p>
           </div>
-          <div className="workspace-pill">
-            {selectedTools.length} selected
+          <div className="flex items-center gap-3">
+            {Object.keys(sources).length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[#6B7280]">Source:</span>
+                <select
+                  value={selectedSource}
+                  onChange={(e) => onSourceChange?.(e.target.value)}
+                  className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1 text-xs text-[#111827] outline-none"
+                >
+                  {Object.keys(sources).map((src) => (
+                    <option key={src} value={src}>
+                      {src} ({sources[src].total_tools} tools)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div className="workspace-pill">
+              {selectedTools.length} selected
+            </div>
           </div>
         </div>
       </div>
@@ -167,7 +192,11 @@ export function ToolsetManager({ tools, onToolsChange }) {
           </div>
 
           <div className="border-t border-[#E5E7EB] bg-[#FAFAFA] p-4">
-            <Button className="w-full bg-[#111827] text-white hover:bg-black" disabled={selectedTools.length === 0}>
+            <Button
+              onClick={() => onSaveToolset?.(visibleTools)}
+              className="w-full bg-[#111827] text-white hover:bg-black"
+              disabled={selectedTools.length === 0}
+            >
               Save Toolset
             </Button>
           </div>

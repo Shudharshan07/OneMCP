@@ -1,6 +1,6 @@
 @echo off
 echo Building frontend...
-cd /d "D:\Projects\Dell\frontend"
+cd /d "%~dp0frontend"
 call npm run build
 if %errorlevel% neq 0 (
     echo Frontend build failed. Aborting.
@@ -10,7 +10,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Starting backend...
-cd /d "c:\All Files\Dell\compiler"
+cd /d "%~dp0compiler"
 start "API Proxy - FastAPI" cmd /k "venv\Scripts\activate && python main.py"
 
 timeout /t 2 /nobreak >nul

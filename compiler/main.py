@@ -30,7 +30,11 @@ app.add_middleware(
     allow_methods=["*"],
 )
 
-BASE_SPEC_DIR = r"D:\Projects\Dell\test_specs\V3"
+app.include_router(ingest_router)
+app.include_router(proxy_router)
+
+
+BASE_SPEC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "test_specs", "V3"))
 
 def parse_spec_to_graph(spec_path: str) -> dict:
     graph = nx.DiGraph()

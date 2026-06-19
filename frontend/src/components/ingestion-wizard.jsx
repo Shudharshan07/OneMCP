@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { CheckCircle2, FileCode2, Loader2, Terminal, UploadCloud } from "lucide-react"
+import { CheckCircle2, FileCode2, Loader2, Terminal, UploadCloud, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -43,7 +43,11 @@ function normalizeTools(rawTools = []) {
   }))
 }
 
-export function IngestionWizard({ onIngestionComplete }) {
+export function IngestionWizard({
+  sources = {},
+  onIngestionComplete,
+  onDeleteSource,
+}) {
   const fileRef = useRef(null)
   const [loading, setLoading] = useState(false)
   const [logs, setLogs] = useState([
@@ -155,26 +159,55 @@ export function IngestionWizard({ onIngestionComplete }) {
             </div>
           </div>
 
-          <div className="workspace-card p-5">
-            <h3 className="workspace-title">Ingestion Status</h3>
-            <p className="workspace-description">Live parser state and validation feedback.</p>
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
-                <p className="workspace-subtle">Generated tools</p>
-                <p className="mt-1 text-2xl font-semibold text-[#111827]">{toolCount}</p>
-              </div>
-              <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
-                <p className="workspace-subtle">State</p>
-                <p className="mt-1 flex items-center gap-2 text-sm font-medium text-[#111827]">
-                  {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-                  {loading ? "Parsing" : "Ready"}
-                </p>
-              </div>
-              <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
-                <p className="workspace-subtle">Validation</p>
-                <p className="mt-1 text-sm font-medium text-[#111827]">No blocking issues</p>
+          <div className="space-y-6">
+            <div className="workspace-card p-5">
+              <h3 className="workspace-title">Ingestion Status</h3>
+              <p className="workspace-description">Live parser state and validation feedback.</p>
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+                  <p className="workspace-subtle">Generated tools</p>
+                  <p className="mt-1 text-2xl font-semibold text-[#111827]">{toolCount}</p>
+                </div>
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+                  <p className="workspace-subtle">State</p>
+                  <p className="mt-1 flex items-center gap-2 text-sm font-medium text-[#111827]">
+                    {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                    {loading ? "Parsing" : "Ready"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-4">
+                  <p className="workspace-subtle">Validation</p>
+                  <p className="mt-1 text-sm font-medium text-[#111827]">No blocking issues</p>
+                </div>
               </div>
             </div>
+
+            {Object.keys(sources).length > 0 && (
+              <div className="workspace-card p-5">
+                <h3 className="workspace-title">Ingested Sources</h3>
+                <p className="workspace-description">Currently active API schemas in backend storage.</p>
+                <div className="mt-4 space-y-3">
+                  {Object.entries(sources).map(([sourceId, info]) => (
+                    <div key={sourceId} className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-[#111827]">{sourceId}</p>
+                        <p className="mt-0.5 truncate text-[10px] text-[#6B7280]">{info.base_url || "No base URL"}</p>
+                        <span className="mt-1 inline-block rounded bg-[#E5E7EB] px-1 py-0.5 text-[9px] font-medium text-[#374151]">
+                          {info.total_tools} tools
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => onDeleteSource?.(sourceId)}
+                        className="text-[#9CA3AF] transition-colors hover:text-red-600 p-1"
+                        title="Delete Source"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
