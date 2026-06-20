@@ -134,10 +134,20 @@ async def proxy_call(req: ProxyCallRequest):
                 retry_after = response.headers.get("Retry-After", "2")
                 return {"error": "rate_limited", "retry_after_seconds": retry_after}
 
+            content_type = response.headers.get("content-type", "")
             try:
                 return {"status_code": response.status_code, "data": response.json()}
             except Exception:
-                return {"status_code": response.status_code, "data": response.text}
+                text = response.text
+                # HTML response usually means auth redirect or wrong URL — surface a clean message
+                if "text/html" in content_type or text.lstrip().startswith("<!"):
+                    detail = (
+                        f"The API returned an HTML page (HTTP {response.status_code}). "
+                        "This usually means the request requires authentication or the base URL is incorrect. "
+                        "Set credentials in the Environments tab for this source."
+                    )
+                    return {"status_code": response.status_code, "error": detail}
+                return {"status_code": response.status_code, "data": text}
 
         except httpx.RequestError as e:
             raise HTTPException(status_code=502, detail=f"Downstream request failed: {str(e)}")

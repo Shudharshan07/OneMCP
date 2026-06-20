@@ -745,6 +745,10 @@ def _parse_retry_after(resp: "httpx.Response") -> float:
 
 def _truncate(obj: Any) -> str:
     s = json.dumps(obj) if not isinstance(obj, str) else obj
+    # Strip HTML responses — sending raw HTML to LLMs causes tool_use_failed errors
+    stripped = s.lstrip()
+    if stripped.startswith("<!") or stripped.startswith("<html") or stripped.startswith("<HTML"):
+        return f"[API returned HTML page — likely an auth or routing error. Status may indicate 401/403/404.]"
     if len(s) > MAX_TOOL_RESULT_CHARS:
         return s[:MAX_TOOL_RESULT_CHARS] + f"… [truncated, {len(s)} chars total]"
     return s
@@ -912,9 +916,11 @@ async def _run_openai_compat(
                 elif resp.status_code == 429:
                     err_text = f"Rate limited. {err_text}"
                 elif resp.status_code == 400 and "tool_use_failed" in resp.text:
-                    err_text = ("Model failed to generate a valid tool call (tool_use_failed). "
-                                "This is a known issue with openai/gpt-oss-* models. "
-                                "Switch to llama-3.3-70b-versatile in the Model dropdown and retry.")
+                    err_text = (
+                        "Model failed to generate a valid tool call. "
+                        "Try switching to a different model — e.g. llama-3.3-70b-versatile, "
+                        "mixtral-8x7b-32768, or gemma2-9b-it on Groq, or use a Claude/OpenAI model."
+                    )
                 yield {"type": "error", "message": f"{base_url} HTTP {resp.status_code}: {err_text}"}
                 return
             data = resp.json()

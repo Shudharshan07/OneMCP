@@ -39,7 +39,7 @@ export function McpPage() {
             <Layers className="size-5 text-[#111827]" />
             <div>
               <h2 className="text-sm font-bold text-[#111827]">Model Context Protocol</h2>
-              <p className="mt-0.5 text-xs text-[#6B7280]">Live SSE server status + workflow tools exposed across all sources.</p>
+              <p className="mt-0.5 text-xs text-[#6B7280]">Live MCP server status + workflow tools exposed across all sources.</p>
             </div>
           </div>
           <button onClick={load} className="inline-flex items-center gap-1.5 rounded-full border border-[#D1CFCA] bg-white px-3 py-2 text-xs font-semibold text-[#55534E] transition hover:bg-[#EAE8E3]">
@@ -74,7 +74,7 @@ export function McpPage() {
 
             <div className="rounded-xl border border-[#D1CFCA] bg-white p-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-[#111827]">SSE transport URL</h3>
+                <h3 className="text-xs font-bold text-[#111827]">MCP transport URL</h3>
                 <CopyButton value={status.sse_url} />
               </div>
               <code className="mt-2 block rounded-lg border border-[#D0CECA] bg-[#FAFAFA] px-3 py-2 font-mono text-xs text-[#55534E]">{status.sse_url}</code>

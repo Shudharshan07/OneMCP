@@ -2,9 +2,12 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 import yaml
 import json
+import logging
 from typing import List, Any
 from pydantic import BaseModel, field_validator
 from app.storage import load_storage, save_storage
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -44,12 +47,25 @@ async def ingest_openapi(file: UploadFile = File(...)):
     contents = await file.read()
 
     try:
+        # Decode bytes to string, stripping BOM if present
+        text = contents.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        try:
+            text = contents.decode("latin-1")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Could not decode file: {e}")
+
+    try:
         if file.filename.endswith((".yaml", ".yml")):
-            spec_data = yaml.safe_load(contents)
+            spec_data = yaml.safe_load(text)
         else:
-            spec_data = json.loads(contents)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid file format. Must be valid JSON or YAML.")
+            spec_data = json.loads(text)
+    except Exception as e:
+        logger.error("Failed to parse uploaded file '%s': %s", file.filename, e)
+        raise HTTPException(status_code=400, detail=f"Invalid file format: {e}")
+
+    if not isinstance(spec_data, dict):
+        raise HTTPException(status_code=400, detail="Parsed file is not a valid OpenAPI object.")
 
     parsed_tools = {}
     paths = spec_data.get("paths", {}) or {}
@@ -191,6 +207,7 @@ class ToolsetSaveRequest(BaseModel):
     toolset_id: str
     tools: List[ToolsetItem]
     description: str = "New Toolset Description"
+    source_id: str = ""
 
 
 @router.post("/toolsets")
@@ -204,6 +221,7 @@ async def save_toolset(req: ToolsetSaveRequest):
         
     storage["toolsets"][req.toolset_id] = {
         "toolset_id": req.toolset_id,
+        "source_id": req.source_id,
         "tools": [tool.model_dump() for tool in req.tools],
         "description": req.description
     }

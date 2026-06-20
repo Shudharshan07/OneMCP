@@ -200,21 +200,21 @@ def mcp_config(toolset_id: str):
     storage = load_storage()
     ts = _require_toolset(storage, toolset_id)
     selected = [t for t in ts.get("tools", []) if t.get("selected")]
-    sse_url = "http://localhost:8002/sse"
+    mcp_url = "http://localhost:8002/mcp"
     claude_desktop = {
         "mcpServers": {
             f"gram-{toolset_id}": {
                 "command": "npx",
-                "args": ["-y", "mcp-remote", sse_url],
+                "args": ["-y", "mcp-remote", mcp_url],
             }
         }
     }
-    cursor = {"mcpServers": {f"gram-{toolset_id}": {"url": sse_url}}}
+    cursor = {"mcpServers": {f"gram-{toolset_id}": {"url": mcp_url}}}
     return {
         "toolset_id": toolset_id,
         "tool_count": len(selected),
-        "sse_url": sse_url,
-        "fastmcp_command": "fastmcp run app/mcp_server.py --transport sse --port 8002",
+        "sse_url": mcp_url,
+        "fastmcp_command": "fastmcp run app/mcp_server.py --transport streamable-http --port 8002",
         "claude_desktop_config": claude_desktop,
         "cursor_config": cursor,
     }
@@ -375,7 +375,7 @@ def reject_pending_workflow(pending_id: str):
 # proxy.py:_active_env_vars reads this to override base_url + inject auth.
 
 SSE_PORT = 8002
-SSE_URL = f"http://localhost:{SSE_PORT}/sse"
+MCP_URL = f"http://localhost:{SSE_PORT}/mcp"
 
 
 def _require_source(storage: dict, source_id: str) -> dict:
@@ -477,8 +477,8 @@ def get_active_source_environment(source_id: str):
 # ===========================================================================
 def _mcp_client_blocks() -> dict:
     server_key = "gram-workflow-proxy"
-    remote = {server_key: {"command": "npx", "args": ["-y", "mcp-remote", SSE_URL]}}
-    url_only = {server_key: {"url": SSE_URL}}
+    remote = {server_key: {"command": "npx", "args": ["-y", "mcp-remote", MCP_URL]}}
+    url_only = {server_key: {"url": MCP_URL}}
     return {
         "claude_desktop": {"mcpServers": remote},
         "cursor": {"mcpServers": url_only},
@@ -525,7 +525,7 @@ async def mcp_status():
 
     return {
         "reachable": reachable,
-        "sse_url": SSE_URL,
+        "sse_url": MCP_URL,
         "tool_count": tool_count,
         "source_count": len(sources),
         "sources": per_source,

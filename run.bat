@@ -17,14 +17,14 @@ timeout /t 2 /nobreak >nul
 
 echo.
 echo Starting MCP server...
-start "API Proxy - MCP" cmd /k "venv\Scripts\activate && fastmcp run app/mcp_server.py --transport sse --port 8002"
+start "API Proxy - MCP" cmd /k "venv\Scripts\activate && fastmcp run app/mcp_server.py --transport streamable-http --port 8002"
 
 timeout /t 2 /nobreak >nul
 
 echo.
 echo ================================
 echo  FastAPI:   http://localhost:8000
-echo  MCP (SSE): http://localhost:8002/sse
+echo  MCP:       http://localhost:8002/mcp
 echo ================================
 echo.
 pause

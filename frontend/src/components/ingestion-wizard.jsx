@@ -63,6 +63,9 @@ export function IngestionWizard({
     const file = event.target.files?.[0]
     if (!file) return
 
+    // Reset input immediately so the same file can be re-selected later
+    event.target.value = ""
+
     setLoading(true)
     setLastFile(file.name)
     setLogs([
@@ -94,7 +97,6 @@ export function IngestionWizard({
       onIngestionComplete(fallbackTools)
     } finally {
       setLoading(false)
-      event.target.value = ""
     }
   }
 

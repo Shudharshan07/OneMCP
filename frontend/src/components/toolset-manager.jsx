@@ -155,6 +155,7 @@ export function ToolsetManager({
         const payload = {
           toolset_id: newName.trim(),
           description: newDesc,
+          source_id: newSource,
           tools: initialTools
         }
 
@@ -203,11 +204,13 @@ export function ToolsetManager({
   const handleOpenUpdate = async () => {
     if (!selectedToolset) return
     
-    // Determine the source of this toolset
-    // We assume the source name matches or is linked, or we query
-    const sourceId = Object.keys(sources).find(s => 
-      selectedToolset.toolset_id.toLowerCase().includes(s.toLowerCase())
-    ) || Object.keys(sources)[0]
+    // Use the source_id stored on the toolset, fall back to inferring from tools, then first source
+    const sourceId = selectedToolset.source_id
+      || selectedToolset.tools?.[0]?.source_id
+      || Object.keys(sources).find(s =>
+          selectedToolset.toolset_id.toLowerCase().includes(s.toLowerCase())
+        )
+      || Object.keys(sources)[0]
 
     if (!sourceId) {
       alert("No active API sources found. Please ingest an OpenAPI spec first.")
@@ -292,6 +295,7 @@ export function ToolsetManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           toolset_id: updatedToolset.toolset_id,
+          source_id: updatedToolset.source_id ?? "",
           tools: updatedToolset.tools,
           description: updatedToolset.description
         })
