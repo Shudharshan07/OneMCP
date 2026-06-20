@@ -3,12 +3,12 @@
 ## Background
 
 The project has two running pieces:
-- **FastAPI backend** (`compiler/main.py`) on port **8000** — already serves the built frontend from `compiler/static/` via a catch-all route
-- **MCP server** (`compiler/app/mcp_server.py`) on port **8002** via SSE
+- **FastAPI backend** (`compiler/main.py`) — serves the built frontend from `compiler/static/` via a catch-all route. The port is customizable via the `PORT` environment variable (default: `8000`).
+- **MCP server** (`compiler/app/mcp_server.py`) — runs via SSE or streamable-http. The port is customizable via the `MCP_PORT` environment variable (default: `8002`).
 
 The frontend (Vite/React) already has `outDir: "../compiler/static"` set in `vite.config.js`, so one build deposits the SPA into the right place.
 
-The `.mcpb` format is a **custom bundle format** (not an industry standard) — the simplest sane definition is a **ZIP archive** (renamed `.mcpb`) containing everything the MCP server needs to run, with a `manifest.json` that describes how to launch it. This is consistent with how tools like Cursor/Windsurf define "MCP bundles".
+The `.mcpb` format is a **custom bundle format** (not an industry standard) — the simplest sane definition is a **ZIP archive** (renamed `.mcpb`) containing everything the MCP server needs to run, with a `manifest.json` that describes how to launch it. The ports specified in the manifest represent default ports which the runner can override at startup by injecting environment variables.
 
 ---
 
@@ -20,12 +20,12 @@ The `.mcpb` format is a **custom bundle format** (not an industry standard) — 
 Update the bat script to:
 - Build the frontend (`npm run build`) — outputs to `compiler/static/`
 - Copy the built dist into `compiler/static/` (already handled by `vite.config.js`)
-- Start the FastAPI server which serves `compiler/static/index.html` for every non-API route
-- Start the MCP SSE server
-- Open the browser automatically to `http://localhost:8000`
+- Start the FastAPI server (allowing custom `PORT` from environment) which serves `compiler/static/index.html` for every non-API route
+- Start the MCP server (allowing custom `MCP_PORT` from environment)
+- Open the browser automatically to the backend UI URL (e.g. `http://localhost:%PORT%`)
 
 #### [MODIFY] [main.py](file:///c:/All%20Files/Dell/compiler/main.py)
-Verify that `StaticFiles` + catch-all route are solid. Minor fix: also mount the root `static/` dir to serve `index.html` and ensure assets are resolved correctly.
+Verify that `StaticFiles` + catch-all route are solid. Mount the root `static/` dir to serve `index.html` and ensure assets are resolved correctly. Update the entrypoint to read the `PORT` environment variable (default: `8000`) instead of hardcoding.
 
 ---
 
@@ -34,7 +34,7 @@ Verify that `StaticFiles` + catch-all route are solid. Minor fix: also mount the
 A `.mcpb` file is a **ZIP archive** containing:
 
 ```
-gram.mcpb  (ZIP inside)
+onemcp.mcpb  (ZIP inside)
 ├── manifest.json          ← describes name, entrypoint, transport, port
 ├── requirements.txt       ← Python deps for the MCP server
 ├── app/
@@ -58,9 +58,9 @@ gram.mcpb  (ZIP inside)
 **`manifest.json`** will look like:
 ```json
 {
-  "name": "gram-api-proxy",
+  "name": "onemcp-api-proxy",
   "version": "1.0.0",
-  "description": "Gram – API Proxy MCP Server with built-in UI",
+  "description": "onemcp – API Proxy MCP Server with built-in UI",
   "entrypoint": "app/mcp_server.py",
   "transport": "sse",
   "port": 8002,
@@ -71,13 +71,16 @@ gram.mcpb  (ZIP inside)
 }
 ```
 
+> [!TIP]
+> A runner loading this `.mcpb` bundle can dynamically allocate free ports and override these defaults by setting the `PORT` and `MCP_PORT` environment variables before launching the entrypoint and UI server.
+
 #### [NEW] `package.bat` (root)
 A one-shot script that:
 1. Runs `npm run build` in `frontend/` → deposits dist into `compiler/static/`
-2. Calls a Python packaging script to zip everything into `gram.mcpb`
+2. Calls a Python packaging script to zip everything into `onemcp.mcpb`
 
 #### [NEW] `package_mcpb.py` (root)
-Python script that creates the ZIP archive as `gram.mcpb`.
+Python script that creates the ZIP archive as `onemcp.mcpb`.
 
 ---
 
@@ -86,13 +89,13 @@ Python script that creates the ZIP archive as `gram.mcpb`.
 ### Automated
 ```bat
 REM After running package.bat:
-python -c "import zipfile; z=zipfile.ZipFile('gram.mcpb'); print(z.namelist())"
+python -c "import zipfile; z=zipfile.ZipFile('onemcp.mcpb'); print(z.namelist())"
 ```
 
 ### Manual Verification
-1. Run `package.bat` — confirm `gram.mcpb` is created in project root
-2. Run `run.bat` — confirm browser opens at `http://localhost:8000` showing the full UI
-3. Confirm MCP server is reachable at `http://localhost:8002/sse`
+1. Run `package.bat` — confirm `onemcp.mcpb` is created in project root
+2. Run `run.bat` (optionally setting custom `PORT` and `MCP_PORT`) — confirm browser opens showing the full UI
+3. Confirm MCP server is reachable at the configured port (e.g. `http://localhost:%MCP_PORT%/mcp`)
 
 ---
 

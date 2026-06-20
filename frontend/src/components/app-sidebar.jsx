@@ -14,11 +14,12 @@ import {
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
 
 const createItems = [
@@ -40,16 +41,23 @@ const consumeItems = [
 export function AppSidebar({ activePage, onPageChange }) {
   return (
     <Sidebar collapsible="icon" className="border-r border-[#D0CECA] bg-[#E3E1DC]">
-      <SidebarHeader className="px-6 pb-2 pt-6">
-        <div className="flex items-baseline gap-1.5 overflow-hidden">
-          <span className="font-serif text-[26px] font-bold tracking-tight text-[#111827]">Dell</span>
+      <SidebarHeader className="px-5 pb-2 pt-6 group-data-[collapsible=icon]:px-0">
+        <div className="flex items-center justify-between gap-2">
+          {/* full wordmark (expanded) */}
+          <span className="wordmark-dell text-[22px] leading-none text-[#111827] group-data-[collapsible=icon]:hidden">
+            OneMCP
+          </span>
+          {/* compact mark (collapsed rail) */}
+          <span className="wordmark-dell mx-auto hidden text-[22px] leading-none text-[#111827] group-data-[collapsible=icon]:block">
+            O
+          </span>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="gap-5 px-3 py-4">
         {/* CREATE SECTION */}
         <div className="space-y-1">
-          <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#787670]">Create</span>
+          <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#787670] group-data-[collapsible=icon]:hidden">Create</span>
           <SidebarMenu className="mt-1">
             {createItems.map((item) => {
               const isActive = activePage === item.id || (item.id === "tools" && activePage === "tools")
@@ -63,7 +71,7 @@ export function AppSidebar({ activePage, onPageChange }) {
                       }`}
                   >
                     <item.icon className="size-4" />
-                    <span>{item.title}</span>
+                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
@@ -73,7 +81,7 @@ export function AppSidebar({ activePage, onPageChange }) {
 
         {/* CONSUME SECTION */}
         <div className="space-y-1">
-          <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#787670]">Consume</span>
+          <span className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#787670] group-data-[collapsible=icon]:hidden">Consume</span>
           <SidebarMenu className="mt-1">
             {consumeItems.map((item) => {
               const isActive = activePage === item.id
@@ -87,7 +95,7 @@ export function AppSidebar({ activePage, onPageChange }) {
                       }`}
                   >
                     <item.icon className="size-4" />
-                    <span>{item.title}</span>
+                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
@@ -96,7 +104,7 @@ export function AppSidebar({ activePage, onPageChange }) {
         </div>
       </SidebarContent>
 
-
+      <SidebarRail />
     </Sidebar>
   )
 }

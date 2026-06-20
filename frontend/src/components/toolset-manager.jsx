@@ -38,7 +38,7 @@ export function ToolsetManager({
   const [view, setView] = useState("list") // "list", "detail", "update"
   const [toolsets, setToolsets] = useState([])
   const [selectedToolset, setSelectedToolset] = useState(null)
-  
+
   // Dialog / Creation state
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newName, setNewName] = useState("")
@@ -136,7 +136,7 @@ export function ToolsetManager({
   // Handle creating new toolset
   const handleCreateToolset = async () => {
     if (!newName.trim() || !newSource) return
-    
+
     // Fetch source tools first
     try {
       const response = await fetch(`/api/v1/sources/${newSource}/tools`)
@@ -170,7 +170,7 @@ export function ToolsetManager({
           setIsCreateOpen(false)
           setNewName("")
           setNewDesc("New Toolset Description")
-          
+
           // Open the detail page of the new toolset
           setSelectedToolset(payload)
           setView("detail")
@@ -203,13 +203,13 @@ export function ToolsetManager({
   // Handle opening Update View
   const handleOpenUpdate = async () => {
     if (!selectedToolset) return
-    
+
     // Use the source_id stored on the toolset, fall back to inferring from tools, then first source
     const sourceId = selectedToolset.source_id
       || selectedToolset.tools?.[0]?.source_id
       || Object.keys(sources).find(s =>
-          selectedToolset.toolset_id.toLowerCase().includes(s.toLowerCase())
-        )
+        selectedToolset.toolset_id.toLowerCase().includes(s.toLowerCase())
+      )
       || Object.keys(sources)[0]
 
     if (!sourceId) {
@@ -221,7 +221,7 @@ export function ToolsetManager({
       const response = await fetch(`/api/v1/sources/${sourceId}/tools`)
       if (response.ok) {
         const data = await response.json()
-        
+
         // Find existing tool choices
         const existingSelectedIds = new Set(
           selectedToolset.tools.filter(t => t.selected).map(t => t.id)
@@ -240,7 +240,7 @@ export function ToolsetManager({
 
         // Update selected set
         setTempSelectedToolIds(new Set(selectedToolset.tools.filter(t => t.selected).map(t => t.id)))
-        
+
         // Temporarily store full tools list inside selectedToolset for update view
         setSelectedToolset({
           ...selectedToolset,
@@ -313,18 +313,18 @@ export function ToolsetManager({
   // Filter tools for Detail / Update view
   const filteredTools = useMemo(() => {
     if (!selectedToolset) return []
-    const list = view === "update" 
-      ? (selectedToolset.all_available_tools ?? []) 
+    const list = view === "update"
+      ? (selectedToolset.all_available_tools ?? [])
       : selectedToolset.tools.filter(t => t.selected)
-    
+
     return list.filter((tool) => {
       const matchesSearch = [tool.id, tool.path, tool.method, tool.description]
         .join(" ")
         .toLowerCase()
         .includes(searchQuery.toLowerCase())
-      
+
       const matchesTag = tagFilter === "All" || tool.method.toUpperCase() === tagFilter.toUpperCase()
-      
+
       return matchesSearch && matchesTag
     })
   }, [selectedToolset, searchQuery, tagFilter, view])
@@ -340,8 +340,8 @@ export function ToolsetManager({
           <SidebarTrigger className="rounded-lg text-[#787670] hover:bg-[#EAE8E3] hover:text-[#111827]" />
           <span className="text-[#D0CECA] font-light">|</span>
           <nav className="flex items-center gap-2 text-xs font-semibold text-[#55534E]">
-            <button 
-              onClick={() => setView("list")} 
+            <button
+              onClick={() => setView("list")}
               className={`hover:text-[#111827] transition ${view === "list" ? "text-[#111827]" : ""}`}
             >
               Toolsets
@@ -349,8 +349,8 @@ export function ToolsetManager({
             {view !== "list" && (
               <>
                 <span className="text-[#A2A09A]">/</span>
-                <button 
-                  onClick={() => setView("detail")} 
+                <button
+                  onClick={() => setView("detail")}
                   className={`hover:text-[#111827] transition ${view === "detail" ? "text-[#111827]" : ""}`}
                 >
                   {selectedToolset?.toolset_id}
@@ -378,7 +378,8 @@ export function ToolsetManager({
           <button
             onClick={() => {
               setNewName("")
-              setIsCreateOpen(true)}
+              setIsCreateOpen(true)
+            }
             }
             className="p-2 text-[#787670] hover:bg-[#EAE8E3] hover:text-[#111827] rounded-lg transition"
             title="Create New Toolset"
@@ -397,7 +398,7 @@ export function ToolsetManager({
               {toolsets.map((ts) => {
                 const activeTools = ts.tools?.filter(t => t.selected) ?? []
                 return (
-                  <div 
+                  <div
                     key={ts.toolset_id}
                     className="relative bg-white rounded-xl border border-[#D0CECA] p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition duration-150 hover:shadow-md cursor-pointer"
                     onClick={() => {
@@ -409,7 +410,7 @@ export function ToolsetManager({
                       <h3 className="text-lg font-bold text-[#111827]">{ts.toolset_id}</h3>
                       <p className="text-sm text-[#787670] mt-1">{ts.description || "New Toolset Description"}</p>
                     </div>
-                    
+
                     <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => setListDropdownOpenId(listDropdownOpenId === ts.toolset_id ? null : ts.toolset_id)}
@@ -439,15 +440,16 @@ export function ToolsetManager({
               })}
 
               {/* Add New Toolset card at bottom */}
-              <button 
+              <button
                 onClick={() => {
                   setNewName("")
-                  setIsCreateOpen(true)}
+                  setIsCreateOpen(true)
+                }
                 }
                 className="w-full bg-[#EDEDEB] hover:bg-white rounded-xl border border-dashed border-[#D0CECA] py-8 flex flex-col items-center justify-center gap-2 transition cursor-pointer text-[#787670] hover:text-[#111827] font-semibold"
               >
                 <Plus className="size-6" />
-                <span>+ New Toolset</span>
+                <span>New Toolset</span>
               </button>
             </div>
           </div>
@@ -461,7 +463,7 @@ export function ToolsetManager({
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2">
                   <h2 className="text-3xl font-bold tracking-tight text-[#111827]">{selectedToolset.toolset_id}</h2>
-                  <button 
+                  <button
                     onClick={() => handleCopyName(selectedToolset.toolset_id)}
                     className="p-1 text-[#787670] hover:text-[#111827] rounded transition relative"
                     title="Copy Toolset Name"
@@ -469,10 +471,10 @@ export function ToolsetManager({
                     {copied ? <Check className="size-4 text-emerald-600" /> : <Copy className="size-4" />}
                   </button>
                 </div>
-                
+
                 {isEditingDesc ? (
                   <div className="flex items-center gap-2 max-w-xl">
-                    <Input 
+                    <Input
                       value={editedDesc}
                       onChange={(e) => setEditedDesc(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSaveDescription()}
@@ -483,7 +485,7 @@ export function ToolsetManager({
                     <Button onClick={() => setIsEditingDesc(false)} size="sm" variant="outline">Cancel</Button>
                   </div>
                 ) : (
-                  <p 
+                  <p
                     onClick={() => {
                       setEditedDesc(selectedToolset.description || "New Toolset Description")
                       setIsEditingDesc(true)
@@ -497,23 +499,23 @@ export function ToolsetManager({
 
               {/* Action buttons */}
               <div className="flex flex-wrap items-center gap-3">
-                <Button 
+                <Button
                   onClick={() => onNavigatePage?.("playground")}
-                  variant="outline" 
+                  variant="outline"
                   className="bg-white border-[#D0CECA] hover:bg-[#EAE8E3] text-xs font-semibold px-4 rounded-full h-10 gap-1.5 text-[#111827]"
                 >
                   Playground <Bot className="size-4" />
                 </Button>
-                <button 
+                <button
                   onClick={handleOpenUpdate}
                   className="bg-[#111827] hover:bg-black text-white text-xs font-semibold px-5 py-2.5 rounded-full flex items-center gap-2 transition duration-150"
                 >
                   <Plus className="size-3.5" /> Add/Remove Tools
                 </button>
-                
+
                 {/* Active tools count popover */}
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setActiveToolsDropdownOpen(!activeToolsDropdownOpen)}
                     className="bg-[#EAE8E3] text-[#111827] border border-[#D0CECA] text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 hover:bg-[#D4D2CD] transition"
                   >
@@ -544,11 +546,10 @@ export function ToolsetManager({
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition duration-150 ${
-                    activeTab === tab 
-                      ? "bg-[#111827] text-white border-[#111827]" 
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition duration-150 ${activeTab === tab
+                      ? "bg-[#111827] text-white border-[#111827]"
                       : "bg-white text-[#787670] border-[#D1CFCA] hover:bg-[#EAE8E3]"
-                  }`}
+                    }`}
                 >
                   {tab}
                 </button>
@@ -559,7 +560,7 @@ export function ToolsetManager({
             {activeTab === "Tools" && (
               <div className="space-y-4">
                 {activeToolsCount === 0 ? (
-                  <button 
+                  <button
                     onClick={handleOpenUpdate}
                     className="w-full bg-[#EDEDEB] hover:bg-white rounded-xl border border-dashed border-[#D0CECA] py-14 flex flex-col items-center justify-center gap-2 transition cursor-pointer text-[#787670] hover:text-[#111827] font-semibold"
                   >
@@ -576,7 +577,7 @@ export function ToolsetManager({
                             {selectedToolset.toolset_id.split(" ")[0]}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs text-emerald-600 font-bold">{tool.method}</span>
                           <span className="font-mono text-xs text-[#55534E]">{tool.path}</span>
@@ -661,7 +662,7 @@ export function ToolsetManager({
                   <span className="text-xs font-semibold text-[#55534E]">
                     {tempSelectedToolIds.size} / {(selectedToolset.all_available_tools ?? []).length} Tools
                   </span>
-                  <button 
+                  <button
                     onClick={() => handleEnableAllFiltered(filteredTools)}
                     className="bg-white border border-[#D0CECA] hover:bg-[#EAE8E3] text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-[#111827]"
                   >
@@ -675,7 +676,7 @@ export function ToolsetManager({
                 {filteredTools.map((tool) => {
                   const isChecked = tempSelectedToolIds.has(tool.id)
                   return (
-                    <div 
+                    <div
                       key={tool.id}
                       onClick={() => toggleTempTool(tool.id)}
                       className="flex items-start gap-4 px-6 py-4 hover:bg-[#FAFAFA] cursor-pointer transition"
@@ -687,7 +688,7 @@ export function ToolsetManager({
                           <Square className="size-4 text-[#787670]" />
                         )}
                       </div>
-                      
+
                       <div className="flex-1 min-w-0 md:max-w-md">
                         <p className="font-mono text-xs font-bold text-[#111827] truncate">{tool.id}</p>
                         <div className="flex items-center gap-1.5 mt-1 font-mono text-[10px]">
@@ -715,14 +716,14 @@ export function ToolsetManager({
 
             {/* Sticky Bottom Actions Bar */}
             <div className="sticky bottom-4 z-20 bg-[#E3E1DC] border border-[#D0CECA] rounded-xl p-4 flex justify-end gap-3 shadow-lg">
-              <Button 
-                onClick={() => setView("detail")} 
-                variant="outline" 
+              <Button
+                onClick={() => setView("detail")}
+                variant="outline"
                 className="bg-white border-[#D0CECA] text-xs font-semibold px-4 h-10 text-[#111827]"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleSaveUpdate}
                 className="bg-[#111827] text-white hover:bg-black text-xs font-semibold px-5 h-10"
               >
@@ -739,7 +740,7 @@ export function ToolsetManager({
           <div className="bg-white rounded-xl border border-[#D0CECA] max-w-md w-full p-6 space-y-4 shadow-xl m-4">
             <div className="flex justify-between items-start">
               <h3 className="text-lg font-bold text-[#111827]">Create New Toolset</h3>
-              <button 
+              <button
                 onClick={() => setIsCreateOpen(false)}
                 className="p-1 hover:bg-[#EAE8E3] rounded-lg transition"
               >
@@ -750,8 +751,8 @@ export function ToolsetManager({
             <div className="space-y-4">
               <label className="block space-y-1">
                 <span className="text-xs font-semibold text-[#55534E]">Toolset Name / ID</span>
-                <Input 
-                  value={newName} 
+                <Input
+                  value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. Stripe Charges"
                   className="bg-white border-[#D0CECA] focus-visible:ring-1 focus-visible:ring-[#111827]"
@@ -760,8 +761,8 @@ export function ToolsetManager({
 
               <label className="block space-y-1">
                 <span className="text-xs font-semibold text-[#55534E]">Description</span>
-                <textarea 
-                  value={newDesc} 
+                <textarea
+                  value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                   rows={2}
                   className="w-full resize-none rounded-lg border border-[#D0CECA] bg-white px-3 py-2 text-sm text-[#111827] outline-none focus:border-[#111827]"
@@ -794,15 +795,15 @@ export function ToolsetManager({
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-[#D0CECA]">
-              <Button 
-                onClick={() => setIsCreateOpen(false)} 
-                variant="outline" 
+              <Button
+                onClick={() => setIsCreateOpen(false)}
+                variant="outline"
                 size="sm"
                 className="border-[#D0CECA]"
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 onClick={handleCreateToolset}
                 disabled={!newName.trim() || Object.keys(sources).length === 0}
                 size="sm"

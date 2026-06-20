@@ -94,17 +94,34 @@ export function McpPage() {
               </div>
             </div>
 
-            {status.clients && Object.entries(status.clients).map(([key, cfg]) => (
-              <div key={key} className="rounded-xl border border-[#D1CFCA] bg-white p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#111827]">{CLIENT_LABELS[key] ?? key}</span>
-                  <CopyButton value={cfg} label="Copy JSON" />
-                </div>
-                <pre className="mt-2 max-h-72 overflow-auto rounded-lg border border-[#D0CECA] bg-[#1E1E1E] p-3 font-mono text-[11px] leading-5 text-emerald-300">
-                  {JSON.stringify(cfg, null, 2)}
-                </pre>
+            <div>
+              <h3 className="mb-2 text-xs font-bold text-[#111827]">Connect your AI IDE / agent</h3>
+              <p className="mb-3 text-[11px] text-[#6B7280]">
+                Copy the block for your client. Any MCP-capable agent connects over streamable-http at the URL above; stdio-only clients are bridged via <code className="font-mono">mcp-remote</code>.
+              </p>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {status.clients && Object.entries(status.clients).map(([key, cfg]) => {
+                  const conf = cfg?.config ?? cfg
+                  const label = cfg?.label ?? CLIENT_LABELS[key] ?? key
+                  return (
+                    <div key={key} className="rounded-xl border border-[#D1CFCA] bg-white p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-[#111827]">{label}</div>
+                          {cfg?.path && cfg.path !== "—" && (
+                            <div className="truncate font-mono text-[10px] text-[#9CA3AF]">{cfg.path}</div>
+                          )}
+                        </div>
+                        <CopyButton value={conf} label="Copy" />
+                      </div>
+                      <pre className="mt-2 max-h-60 overflow-auto rounded-lg border border-[#D0CECA] bg-[#1E1E1E] p-3 font-mono text-[11px] leading-5 text-emerald-300">
+                        {JSON.stringify(conf, null, 2)}
+                      </pre>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
+            </div>
           </>
         ) : (
           <div className="rounded-xl border border-dashed border-[#D0CECA] py-12 text-center text-xs text-[#787670]">Failed to load MCP status.</div>

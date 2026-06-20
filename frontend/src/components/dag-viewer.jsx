@@ -117,6 +117,19 @@ function DetailPanel({ node, links, onClose }) {
 }
 
 // ── D3 Graph ─────────────────────────────────────────────────────────────────
+
+// Group nodes by their first URL path segment and compute centroid per group.
+function computePathGroupLabels(nodeData) {
+  const groups = {}
+  nodeData.forEach(n => {
+    const seg = (n.path || "").split("/").filter(Boolean)[0] || "root"
+    if (!groups[seg]) groups[seg] = []
+    groups[seg].push(n)
+  })
+  return Object.entries(groups)
+    .filter(([, members]) => members.length > 1)
+    .map(([seg, members]) => ({ label: "/" + seg, members }))
+}
 function D3Graph({ nodes, links, filter, onNodeClick, selectedId }) {
   const svgRef = useRef(null)
   const simRef = useRef(null)
@@ -227,11 +240,49 @@ function D3Graph({ nodes, links, filter, onNodeClick, selectedId }) {
 
     node.append("title").text(d => `${d.method} ${d.path}`)
 
+    // cluster labels — one per path-segment group, repositioned every tick
+    const pathGroups = computePathGroupLabels(nodeData)
+    const labelGroup = g.append("g").attr("class", "cluster-labels")
+
+    // pre-create one label element per group
+    const labelEls = pathGroups.map(({ label }) => {
+      const grp = labelGroup.append("g")
+      grp.append("rect")
+        .attr("rx", 5).attr("ry", 5)
+        .attr("height", 18)
+        .attr("fill", "#111827").attr("opacity", 0.78)
+      grp.append("text")
+        .attr("dominant-baseline", "central")
+        .attr("font-size", "9.5px")
+        .attr("font-weight", "700")
+        .attr("fill", "#FFFFFF")
+        .attr("pointer-events", "none")
+        .attr("x", 6).attr("y", 9)
+        .text(label.length > 18 ? label.slice(0, 16) + "…" : label)
+      return grp
+    })
+
+    let tickCount = 0
     sim.on("tick", () => {
       link
         .attr("x1", d => d.source.x).attr("y1", d => d.source.y)
         .attr("x2", d => d.target.x).attr("y2", d => d.target.y)
       node.attr("transform", d => `translate(${d.x},${d.y})`)
+
+      // update label positions every 8 ticks to avoid perf hit
+      tickCount++
+      if (tickCount % 8 !== 0) return
+      pathGroups.forEach(({ members }, i) => {
+        if (!labelEls[i]) return
+        // place label above the topmost node in the group
+        const top = members.reduce((best, n) => (!best || n.y < best.y ? n : best), null)
+        if (!top) return
+        const lbl = label => label.length > 18 ? label.slice(0, 16) + "…" : label
+        const txt = lbl(pathGroups[i].label)
+        const w = txt.length * 6.2 + 12
+        labelEls[i].select("rect").attr("width", w)
+        labelEls[i].attr("transform", `translate(${top.x - w / 2},${top.y - 36})`)
+      })
     })
 
     return () => { sim.stop() }

@@ -1,5 +1,5 @@
 """
-FastMCP server — bridges agent clients (Cursor, Claude Desktop) to the Gram proxy layer.
+FastMCP server — bridges agent clients (Cursor, Claude Desktop, Windsurf, VS Code, …) to the OneMCP proxy layer.
 Run independently with: fastmcp run app/mcp_server.py
 """
 import json
@@ -14,7 +14,7 @@ from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 from app.storage import load_storage
 
-mcp = FastMCP("Local API Proxy")
+mcp = FastMCP("OneMCP")
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +127,7 @@ async def save_workflow(args: SaveWorkflowArgs) -> str:
 # selector + generic params and dispatches through the workflow execute endpoint.
 # ---------------------------------------------------------------------------
 import re
-from app.workflows import cluster_source, workflow_tool_schema
+from app.workflows import cluster_source, workflow_tool_schema, namespaced_tool_name
 
 BACKEND = "http://127.0.0.1:8000"
 
@@ -233,20 +233,48 @@ async def propose_workflow(
     return f"✅ Workflow '{slug}' submitted for human review. It will appear in the Workflow Proxy UI under 'Pending Approvals'. Do not execute until approved."
 
 
+REGISTRATION = {"registered": 0, "sources": 0, "errors": []}
 try:
     storage = load_storage()
-    registered = 0
+    _taken: set[str] = set()
     for source_id, source_data in storage.get("sources", {}).items():
-        workflows = (storage.get("workflow_defs") or {}).get(source_id) or cluster_source(source_data)
-        for wf in workflows:
-            schema = workflow_tool_schema(wf, defer_catalog=True)
-            clean_name = re.sub(r"[^a-zA-Z0-9_-]", "_", f"{source_id}_{wf['id']}")[:64]
-            mcp.tool(name=clean_name, description=schema["description"])(
-                make_workflow_tool(source_id, wf["id"])
-            )
-            registered += 1
-    print(f"[OK] Registered {registered} workflow-level MCP tools across "
-          f"{len(storage.get('sources', {}))} source(s).")
+        try:
+            workflows = (storage.get("workflow_defs") or {}).get(source_id) or cluster_source(source_data)
+            for wf in workflows:
+                try:
+                    schema = workflow_tool_schema(wf, defer_catalog=True)
+                    # unified name sanitizer (shared with the agent + workflow layers)
+                    clean_name = namespaced_tool_name(source_id, wf["id"], _taken)
+                    mcp.tool(name=clean_name, description=schema["description"])(
+                        make_workflow_tool(source_id, wf["id"])
+                    )
+                    REGISTRATION["registered"] += 1
+                except Exception as e:  # one bad workflow must not nuke the whole server
+                    REGISTRATION["errors"].append(f"{source_id}/{wf.get('id')}: {e}")
+            REGISTRATION["sources"] += 1
+        except Exception as e:
+            REGISTRATION["errors"].append(f"{source_id}: {e}")
+    _msg = (f"[OK] Registered {REGISTRATION['registered']} workflow-level MCP tools across "
+            f"{REGISTRATION['sources']} source(s).")
+    if REGISTRATION["errors"]:
+        _msg += f" {len(REGISTRATION['errors'])} registration error(s)."
+    print(_msg)
 except Exception as e:
+    REGISTRATION["errors"].append(f"fatal: {e}")
     print(f"[WARN] Failed to register workflow tools: {e}")
+
+# Persist registration health so the FastAPI /mcp/status dashboard can surface it
+# (the MCP server and the REST API are separate processes).
+try:
+    _regpath = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".mcp_registration.json")
+    with open(_regpath, "w", encoding="utf-8") as _f:
+        json.dump(REGISTRATION, _f)
+except Exception:
+    pass
+
+
+@mcp.tool()
+async def registration_status() -> str:
+    """Report how many workflow tools this MCP server registered at startup, and any errors."""
+    return json.dumps(REGISTRATION, indent=2)
 

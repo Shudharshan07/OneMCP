@@ -82,10 +82,12 @@ SYSTEM_PROMPT = (
     "You are an API toolset tester. The user gives you a request; you have a set of "
     "tools that each call a real API endpoint. Use the tools to fulfil the request, "
     "passing correct parameters. After the tool results come back, answer the user "
-    "concisely based on the real data. If a tool errors, explain what went wrong."
+    "concisely based on the real data. "
+    "IMPORTANT: If a tool fails or returns an error, do NOT retry it — report the failure and move on. "
+    "Never call the same tool more than once per request."
 )
 
-MAX_TURNS = 8
+MAX_TURNS = 4
 # Tool results are fed back to the model AND re-sent on every subsequent turn,
 # so oversized results compound token cost fast. Keep enough to answer, no more.
 MAX_TOOL_RESULT_CHARS = 1000
@@ -328,7 +330,9 @@ WORKFLOW_SYSTEM_PROMPT = (
     "search_operations(query) to find candidates, then describe_operation(operation_id) "
     "for its exact input schema. Then call the owning wf_* tool, passing that operation_id "
     "as 'operation' with the required params. After results return, answer the user "
-    "concisely from the real data. If a tool errors, explain what went wrong."
+    "concisely from the real data. "
+    "IMPORTANT: If a tool fails or returns an error, do NOT retry it — report the failure and move on. "
+    "Never call the same tool with the same arguments more than once."
 )
 
 

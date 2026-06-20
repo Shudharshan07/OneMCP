@@ -22,7 +22,7 @@ from app.agent import router as agent_router
 from app.resources import router as resources_router
 from app.workflows import router as workflows_router
 
-app = FastAPI(title="Gram Local Execution Engine")
+app = FastAPI(title="OneMCP")
 
 # Clear CORS policy for React/Vite development local links
 app.add_middleware(

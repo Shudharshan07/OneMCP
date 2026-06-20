@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Bot, Clock3, Play, Send, AlertCircle, CheckCircle2, Loader2, Terminal, Coins } from "lucide-react"
+import { Bot, Clock3, Play, Send, AlertCircle, CheckCircle2, Loader2, Terminal, Coins, FlaskConical, Zap, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -85,9 +85,112 @@ function estimateTokens(toolDefs) {
   return Math.ceil(JSON.stringify(toolDefs).length / 4)
 }
 
+// ── Test tab helpers ──────────────────────────────────────────────────────────
+
+function StatBar({ label, valueA, valueB, unit = "", lowerIsBetter = true }) {
+  const a = valueA ?? 0
+  const b = valueB ?? 0
+  const max = Math.max(a, b, 1)
+  const pctA = (a / max) * 100
+  const pctB = (b / max) * 100
+  const aWins = lowerIsBetter ? a < b : a > b
+  const bWins = lowerIsBetter ? b < a : b > a
+  const fmt = (n) => Number(n ?? 0).toLocaleString()
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[10px] text-[#6B7280]">
+        <span>{label}</span>
+        <span className="font-mono">{unit}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={`w-20 text-right font-mono text-[11px] font-bold ${aWins ? "text-emerald-600" : "text-[#374151]"}`}>{fmt(a)}</span>
+        <div className="flex flex-1 flex-col gap-0.5">
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-[#F3F4F6]">
+            <div className="h-full rounded-full bg-indigo-500 transition-all" style={{ width: `${pctA}%` }} />
+          </div>
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-[#F3F4F6]">
+            <div className="h-full rounded-full bg-amber-400 transition-all" style={{ width: `${pctB}%` }} />
+          </div>
+        </div>
+        <span className={`w-20 font-mono text-[11px] font-bold ${bWins ? "text-emerald-600" : "text-[#374151]"}`}>{fmt(b)}</span>
+      </div>
+    </div>
+  )
+}
+
+function TestRunPanel({ label, color, usage, messages, trace, running, status }) {
+  const fmt = (n) => Number(n ?? 0).toLocaleString()
+  return (
+    <div className={`flex flex-col rounded-xl border ${color === "indigo" ? "border-indigo-200" : "border-amber-200"} overflow-hidden`}>
+      {/* header */}
+      <div className={`flex items-center justify-between px-4 py-2.5 ${color === "indigo" ? "bg-indigo-50" : "bg-amber-50"}`}>
+        <span className={`text-xs font-bold ${color === "indigo" ? "text-indigo-700" : "text-amber-700"}`}>{label}</span>
+        <div className="flex items-center gap-2">
+          {running && <Loader2 className="size-3.5 animate-spin text-[#6B7280]" />}
+          {!running && usage && <CheckCircle2 className="size-3.5 text-emerald-600" />}
+          {usage && (
+            <span className={`font-mono text-xs font-bold ${color === "indigo" ? "text-indigo-700" : "text-amber-700"}`}>
+              {fmt(usage.total_tokens)} tokens
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* token breakdown */}
+      {usage && (
+        <div className="grid grid-cols-4 divide-x divide-[#E5E7EB] border-b border-[#E5E7EB] bg-white">
+          {[
+            ["Input", usage.input_tokens],
+            ["Output", usage.output_tokens],
+            ["Turns", usage.turns],
+            ["Total", usage.total_tokens],
+          ].map(([l, v]) => (
+            <div key={l} className="px-3 py-2 text-center">
+              <p className="text-[9px] font-semibold uppercase tracking-wide text-[#9CA3AF]">{l}</p>
+              <p className="mt-0.5 font-mono text-xs font-bold text-[#111827]">{fmt(v)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* tool trace */}
+      <div className="max-h-48 min-h-[80px] flex-1 overflow-y-auto bg-white p-3 space-y-1.5">
+        {status === "idle" && (
+          <p className="text-center text-[11px] text-[#9CA3AF] pt-4">Waiting to run…</p>
+        )}
+        {(status === "running" || status === "done") && trace.map((step) => (
+          <div key={step.id} className="flex items-center gap-2">
+            {step.status === "running" ? (
+              <Loader2 className="size-3 shrink-0 animate-spin text-[#6B7280]" />
+            ) : step.status === "ok" ? (
+              <CheckCircle2 className="size-3 shrink-0 text-emerald-500" />
+            ) : (
+              <AlertCircle className="size-3 shrink-0 text-red-400" />
+            )}
+            <span className="truncate font-mono text-[10px] text-[#374151]">{step.name}</span>
+            {step.duration != null && (
+              <span className="ml-auto shrink-0 font-mono text-[10px] text-[#9CA3AF]">{step.duration}ms</span>
+            )}
+          </div>
+        ))}
+        {trace.length === 0 && running && (
+          <p className="text-center text-[11px] text-[#9CA3AF] pt-4">Running…</p>
+        )}
+      </div>
+
+      {/* final assistant message */}
+      {messages.filter(m => m.role === "assistant" || m.role === "error").slice(-1).map((m, i) => (
+        <div key={i} className={`border-t px-3 py-2 text-[11px] leading-5 ${m.role === "error" ? "bg-red-50 text-red-600 border-red-100" : "bg-[#FAFAFA] text-[#374151] border-[#E5E7EB]"}`}>
+          {m.content}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function AgentPlayground({ tools = [] }) {
   // ── shared selectors ──────────────────────────────────────────────────────
-  const [mode, setMode] = useState("agent") // "agent" | "manual"
+  const [mode, setMode] = useState("agent") // "agent" | "manual" | "test"
   const [providers, setProviders] = useState([])
   const [provider, setProvider] = useState("")
   const [model, setModel] = useState("")
@@ -119,6 +222,16 @@ export function AgentPlayground({ tools = [] }) {
   const [running, setRunning] = useState(false)
   const stepId = useRef(0)
 
+  // ── test mode state ───────────────────────────────────────────────────────
+  const [testPrompt, setTestPrompt] = useState("")
+  const [testSourceId, setTestSourceId] = useState("") // shared source for both sides
+  const [testRunning, setTestRunning] = useState(false)
+  // side A = workflow (MCP), side B = raw toolset (same source)
+  const [sideA, setSideA] = useState({ status: "idle", usage: null, trace: [], messages: [] })
+  const [sideB, setSideB] = useState({ status: "idle", usage: null, trace: [], messages: [] })
+  const stepIdA = useRef(0)
+  const stepIdB = useRef(0)
+
   // ── manual state ──────────────────────────────────────────────────────────
   const [manualToolId, setManualToolId] = useState("")
   const [pathVals, setPathVals] = useState({})
@@ -147,7 +260,9 @@ export function AgentPlayground({ tools = [] }) {
       .then((data) => {
         const list = Object.values(data ?? {})
         setToolsets(list)
-        if (list.length) setToolsetId(list[0].toolset_id)
+        if (list.length) {
+          setToolsetId(list[0].toolset_id)
+        }
       })
       .catch(() => setToolsets([]))
 
@@ -156,6 +271,7 @@ export function AgentPlayground({ tools = [] }) {
       .then((data) => {
         const list = Object.entries(data ?? {}).map(([id, s]) => ({ id, ...s }))
         setSources(list)
+        if (list.length) setTestSourceId(list[0].id)
         // default stays "__all__" — the 1:∞ optimized path
       })
       .catch(() => setSources([]))
@@ -418,6 +534,95 @@ export function AgentPlayground({ tools = [] }) {
     }
   }
 
+  // ── test run helper ───────────────────────────────────────────────────────
+  const runTestSide = async (body, setSide, stepIdRef) => {
+    setSide({ status: "running", usage: null, trace: [], messages: [] })
+    stepIdRef.current = 0
+    try {
+      const resp = await fetch("/api/v1/agent/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`)
+      const reader = resp.body.getReader()
+      const dec = new TextDecoder()
+      let buf = ""
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        let idx
+        while ((idx = buf.indexOf("\n\n")) >= 0) {
+          const chunk = buf.slice(0, idx)
+          buf = buf.slice(idx + 2)
+          const line = chunk.split("\n").find((l) => l.startsWith("data: "))
+          if (!line) continue
+          try {
+            const ev = JSON.parse(line.slice(6))
+            if (ev.type === "tool_call") {
+              const id = ++stepIdRef.current
+              setSide(s => ({ ...s, trace: [...s.trace, { id, name: ev.name, detail: JSON.stringify(ev.args ?? {}), status: "running", duration: null }] }))
+            } else if (ev.type === "tool_result") {
+              setSide(s => {
+                const copy = [...s.trace]
+                for (let i = copy.length - 1; i >= 0; i--) {
+                  if (copy[i].status === "running") {
+                    copy[i] = { ...copy[i], status: ev.ok ? "ok" : "error", duration: ev.duration_ms }
+                    break
+                  }
+                }
+                return { ...s, trace: copy }
+              })
+            } else if (ev.type === "usage") {
+              setSide(s => ({ ...s, usage: ev }))
+            } else if (ev.type === "assistant") {
+              setSide(s => ({ ...s, messages: [...s.messages, { role: "assistant", content: ev.text }] }))
+            } else if (ev.type === "error") {
+              setSide(s => ({ ...s, messages: [...s.messages, { role: "error", content: ev.message }] }))
+            }
+          } catch { /* ignore */ }
+        }
+      }
+    } catch (err) {
+      setSide(s => ({ ...s, messages: [...s.messages, { role: "error", content: err.message }] }))
+    } finally {
+      setSide(s => ({ ...s, status: "done" }))
+    }
+  }
+
+  const runTest = async () => {
+    if (!testPrompt.trim() || testRunning || !testSourceId) return
+    setTestRunning(true)
+
+    // Side A: workflow mode on the selected source
+    const bodyA = { provider, model, mode: "workflow", source_id: testSourceId, message: testPrompt.trim() }
+
+    // Side B: raw toolset mode — we need a toolset_id that maps to this source.
+    // First check if there's a saved toolset matching this source, otherwise
+    // use the first available toolset as a fallback with a note.
+    const matchedToolset = toolsets.find(t =>
+      t.source_id === testSourceId ||
+      (t.tools ?? []).some(tool => tool.source_id === testSourceId)
+    ) ?? toolsets[0]
+
+    if (!matchedToolset) {
+      setSideB({ status: "done", usage: null, trace: [], messages: [{ role: "error", content: "No toolset found. Create a toolset from this source first to compare raw mode." }] })
+      // still run side A
+      await runTestSide(bodyA, setSideA, stepIdA)
+      setTestRunning(false)
+      return
+    }
+
+    const bodyB = { provider, model, toolset_id: matchedToolset.toolset_id, message: testPrompt.trim() }
+
+    await runTestSide(bodyA, setSideA, stepIdA)
+    // brief pause so side B doesn't immediately consume the same rate limit window
+    await new Promise(r => setTimeout(r, 1500))
+    await runTestSide(bodyB, setSideB, stepIdB)
+    setTestRunning(false)
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   return (
     <section className="grid h-full min-h-0 overflow-hidden lg:grid-cols-[minmax(0,1fr)_24rem]">
@@ -428,7 +633,7 @@ export function AgentPlayground({ tools = [] }) {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-[#111827]">Agent Playground</h2>
             <div className="flex rounded-lg border border-[#E5E7EB] p-0.5">
-              {["agent", "manual"].map((m) => (
+              {["agent", "manual", "test"].map((m) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
@@ -436,7 +641,7 @@ export function AgentPlayground({ tools = [] }) {
                     mode === m ? "bg-[#111827] text-white" : "text-[#6B7280] hover:text-[#111827]"
                   }`}
                 >
-                  {m}
+                  {m === "test" ? <span className="flex items-center gap-1"><FlaskConical className="size-3" />Test</span> : m}
                 </button>
               ))}
             </div>
@@ -769,6 +974,140 @@ export function AgentPlayground({ tools = [] }) {
                       {JSON.stringify(manualResult, null, 2)}
                     </pre>
                   )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TEST mode */}
+        {mode === "test" && (
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">
+            <div className="mx-auto max-w-5xl space-y-5">
+
+              {/* config row — single source, shared provider/model */}
+              <div className="rounded-xl border border-[#E5E7EB] bg-white p-4 space-y-3">
+                <p className="text-xs font-bold text-[#111827]">Test Configuration</p>
+                <p className="text-[11px] text-[#6B7280]">
+                  Pick one API source. Both sides run the same prompt — A uses workflow/MCP mode (progressive disclosure), B uses raw toolset mode (all schemas sent upfront). Same source, same model, same prompt — the only difference is how tools are surfaced.
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Provider</span>
+                    <select value={provider} onChange={e => setProvider(e.target.value)}
+                      className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 text-xs text-[#111827] outline-none focus:border-[#111827]">
+                      {providers.map(p => <option key={p.id} value={p.id} disabled={!p.available}>{p.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Model</span>
+                    <select value={model} onChange={e => setModel(e.target.value)}
+                      className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 text-xs text-[#111827] outline-none focus:border-[#111827]">
+                      {(activeProvider?.models ?? []).map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#111827]">API Source (both sides)</span>
+                    <select value={testSourceId} onChange={e => setTestSourceId(e.target.value)}
+                      className="rounded-lg border border-[#111827] bg-white px-2 py-1.5 text-xs text-[#111827] font-semibold outline-none focus:border-[#111827]">
+                      {sources.length === 0 && <option value="">No sources — ingest a spec first</option>}
+                      {sources.map(s => <option key={s.id} value={s.id}>{s.id} ({s.total_tools} tools)</option>)}
+                    </select>
+                  </label>
+                </div>
+
+                {/* show which toolset will be used for side B */}
+                {testSourceId && (() => {
+                  const matched = toolsets.find(t =>
+                    t.source_id === testSourceId ||
+                    (t.tools ?? []).some(tool => tool.source_id === testSourceId)
+                  ) ?? toolsets[0]
+                  return matched ? (
+                    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                      <span className="size-2 rounded-full bg-amber-400 shrink-0" />
+                      <span className="text-[11px] text-amber-700">Side B will use toolset <span className="font-bold">{matched.toolset_id}</span> — {(matched.tools ?? []).filter(t => t.selected).length} active tools</span>
+                      {matched.source_id !== testSourceId && (
+                        <span className="ml-auto text-[10px] text-amber-500 italic">best match (create a toolset from this source for exact comparison)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                      <AlertCircle className="size-3.5 text-red-500 shrink-0" />
+                      <span className="text-[11px] text-red-600">No toolset found. Go to Toolsets and create one from this source first.</span>
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* prompt + run */}
+              <div className="flex gap-2">
+                <Input
+                  value={testPrompt}
+                  onChange={e => setTestPrompt(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && !e.shiftKey && runTest()}
+                  placeholder="Enter a prompt — will run on both sides simultaneously…"
+                  className="workspace-input"
+                  disabled={testRunning}
+                />
+                <Button onClick={runTest} disabled={testRunning || !testPrompt.trim() || !testSourceId} className="bg-[#111827] text-white hover:bg-black shrink-0">
+                  {testRunning ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
+                  Run Test
+                </Button>
+              </div>
+
+              {/* side labels */}
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full bg-indigo-500 shrink-0" />
+                  <span className="font-bold text-indigo-700">A — Workflow / MCP</span>
+                  <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">progressive disclosure</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="size-2.5 rounded-full bg-amber-400 shrink-0" />
+                  <span className="font-bold text-amber-700">B — Raw Toolset</span>
+                  <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-600">all schemas upfront</span>
+                </div>
+              </div>
+
+              {/* side-by-side panels */}
+              <div className="grid grid-cols-2 gap-4">
+                <TestRunPanel label="A — Workflow / MCP" color="indigo" {...sideA} />
+                <TestRunPanel label="B — Raw Toolset" color="amber" {...sideB} />
+              </div>
+
+              {/* comparison — only after both done with data */}
+              {sideA.status === "done" && sideB.status === "done" && sideA.usage && sideB.usage && (
+                <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="size-4 text-[#111827]" />
+                    <h3 className="text-sm font-bold text-[#111827]">Performance Comparison</h3>
+                    <span className="ml-auto text-[11px] font-semibold text-emerald-600">
+                      {(() => {
+                        const savings = sideB.usage.total_tokens - sideA.usage.total_tokens
+                        if (savings > 0) return `Workflow used ${savings.toLocaleString()} fewer tokens (${Math.round((savings / sideB.usage.total_tokens) * 100)}% less than raw)`
+                        if (savings < 0) return `Raw used ${Math.abs(savings).toLocaleString()} fewer tokens`
+                        return "Identical token usage"
+                      })()}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <StatBar label="Input tokens" valueA={sideA.usage.input_tokens} valueB={sideB.usage.input_tokens} />
+                    <StatBar label="Output tokens" valueA={sideA.usage.output_tokens} valueB={sideB.usage.output_tokens} />
+                    <StatBar label="Total tokens" valueA={sideA.usage.total_tokens} valueB={sideB.usage.total_tokens} />
+                    <StatBar label="Model turns" valueA={sideA.usage.turns} valueB={sideB.usage.turns} />
+                    <StatBar label="Tool calls made" valueA={sideA.trace.length} valueB={sideB.trace.length} />
+                  </div>
+                  <div className="flex items-center gap-4 pt-2 border-t border-[#E5E7EB]">
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-indigo-500" />
+                      <span className="text-[10px] text-[#6B7280]">A — Workflow (indigo bar)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-amber-400" />
+                      <span className="text-[10px] text-[#6B7280]">B — Raw toolset (amber bar)</span>
+                    </div>
+                    <span className="text-[10px] text-[#9CA3AF] italic ml-auto">shorter bar = better</span>
+                  </div>
                 </div>
               )}
             </div>
