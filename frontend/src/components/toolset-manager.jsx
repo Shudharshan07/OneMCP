@@ -274,6 +274,13 @@ export function ToolsetManager({
     setTempSelectedToolIds(next)
   }
 
+  // Disable All filtered tools
+  const handleDisableAllFiltered = (filteredList) => {
+    const next = new Set(tempSelectedToolIds)
+    filteredList.forEach(t => next.delete(t.id))
+    setTempSelectedToolIds(next)
+  }
+
   // Handle saving from Update View
   const handleSaveUpdate = async () => {
     if (!selectedToolset) return
@@ -662,12 +669,21 @@ export function ToolsetManager({
                   <span className="text-xs font-semibold text-[#55534E]">
                     {tempSelectedToolIds.size} / {(selectedToolset.all_available_tools ?? []).length} Tools
                   </span>
-                  <button
-                    onClick={() => handleEnableAllFiltered(filteredTools)}
-                    className="bg-white border border-[#D0CECA] hover:bg-[#EAE8E3] text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-[#111827]"
-                  >
-                    <Check className="size-3.5 text-emerald-600" /> Enable All
-                  </button>
+                  {filteredTools.length > 0 && filteredTools.every(t => tempSelectedToolIds.has(t.id)) ? (
+                    <button
+                      onClick={() => handleDisableAllFiltered(filteredTools)}
+                      className="bg-white border border-[#D0CECA] hover:bg-red-50 hover:border-red-200 text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-red-600"
+                    >
+                      <X className="size-3.5" /> Disable All
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleEnableAllFiltered(filteredTools)}
+                      className="bg-white border border-[#D0CECA] hover:bg-[#EAE8E3] text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition text-[#111827]"
+                    >
+                      <Check className="size-3.5 text-emerald-600" /> Enable All
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -91,6 +91,7 @@ export default function App() {
   const [tools, setTools] = useState([])
   const [sources, setSources] = useState({})
   const [selectedSource, setSelectedSource] = useState("")
+  const [ingestSearch, setIngestSearch] = useState("")
 
   const fetchSources = async () => {
     try {
@@ -180,6 +181,7 @@ export default function App() {
       return (
         <IngestionWizard
           sources={sources}
+          searchQuery={ingestSearch}
           onIngestionComplete={async (nextTools) => {
             const updated = await fetchSources()
             if (updated && Object.keys(updated).length > 0) {
@@ -252,11 +254,22 @@ export default function App() {
                   <p className="truncate text-xs text-[#706F6B]">{currentPage?.description}</p>
                 </div>
                 <div className="hidden w-full max-w-md items-center gap-2 rounded-lg border border-[#D1CFCA] bg-[#EDEDEB] px-3 py-2 text-sm text-[#706F6B] lg:flex">
-                  <Search className="size-4" />
-                  <span className="flex-1">Search workflows, tools, traces...</span>
-                  <span className="inline-flex items-center gap-1 rounded-md border border-[#D1CFCA] bg-white px-1.5 py-0.5 text-[11px] text-[#706F6B]">
-                    <Command className="size-3" /> K
-                  </span>
+                  <Search className="size-4 shrink-0" />
+                  {activePage === "ingest" ? (
+                    <input
+                      className="flex-1 bg-transparent outline-none text-[#111827] placeholder:text-[#706F6B] text-sm"
+                      placeholder="Search sources or tools..."
+                      value={ingestSearch}
+                      onChange={(e) => setIngestSearch(e.target.value)}
+                    />
+                  ) : (
+                    <>
+                      <span className="flex-1">Search workflows, tools, traces...</span>
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[#D1CFCA] bg-white px-1.5 py-0.5 text-[11px] text-[#706F6B]">
+                        <Command className="size-3" /> K
+                      </span>
+                    </>
+                  )}
                 </div>
                 <Button variant="ghost" size="icon-sm" className="rounded-lg text-[#706F6B] hover:bg-[#EAE8E3] hover:text-[#111827]">
                   <Bell className="size-4" />

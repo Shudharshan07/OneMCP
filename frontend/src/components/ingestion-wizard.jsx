@@ -45,6 +45,7 @@ function normalizeTools(rawTools = []) {
 
 export function IngestionWizard({
   sources = {},
+  searchQuery = "",
   onIngestionComplete,
   onDeleteSource,
 }) {
@@ -99,6 +100,15 @@ export function IngestionWizard({
       setLoading(false)
     }
   }
+
+  const filteredSources = Object.entries(sources).filter(([sourceId, info]) => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      sourceId.toLowerCase().includes(q) ||
+      (info.base_url ?? "").toLowerCase().includes(q)
+    )
+  })
 
   return (
     <section className="h-full overflow-auto">
@@ -189,24 +199,28 @@ export function IngestionWizard({
                 <h3 className="workspace-title">Ingested Sources</h3>
                 <p className="workspace-description">Currently active API schemas in backend storage.</p>
                 <div className="mt-4 space-y-3">
-                  {Object.entries(sources).map(([sourceId, info]) => (
-                    <div key={sourceId} className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-[#111827]">{sourceId}</p>
-                        <p className="mt-0.5 truncate text-[10px] text-[#6B7280]">{info.base_url || "No base URL"}</p>
-                        <span className="mt-1 inline-block rounded bg-[#E5E7EB] px-1 py-0.5 text-[9px] font-medium text-[#374151]">
-                          {info.total_tools} tools
-                        </span>
+                  {filteredSources.length === 0 ? (
+                    <p className="text-xs text-[#6B7280] italic">No sources match "{searchQuery}".</p>
+                  ) : (
+                    filteredSources.map(([sourceId, info]) => (
+                      <div key={sourceId} className="flex items-center justify-between gap-3 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold text-[#111827]">{sourceId}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-[#6B7280]">{info.base_url || "No base URL"}</p>
+                          <span className="mt-1 inline-block rounded bg-[#E5E7EB] px-1 py-0.5 text-[9px] font-medium text-[#374151]">
+                            {info.total_tools} tools
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => onDeleteSource?.(sourceId)}
+                          className="text-[#9CA3AF] transition-colors hover:text-red-600 p-1"
+                          title="Delete Source"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => onDeleteSource?.(sourceId)}
-                        className="text-[#9CA3AF] transition-colors hover:text-red-600 p-1"
-                        title="Delete Source"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             )}
